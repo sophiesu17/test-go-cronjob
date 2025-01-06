@@ -52,8 +52,9 @@ func NewPubSubTask(ctx context.Context, processStart time.Time, wg *sync.WaitGro
 			return // Stop the task
 		default:
 		}
-		wg.Add(1)
 		jobStart := time.Now()
+		wg.Add(1)
+		defer wg.Done()
 		// Use monotonic clock instead of "wall clock", which may be changed by clock synchronization
 		// see: https://pkg.go.dev/time#hdr-Monotonic_Clocks
 		// Also, drop the fraction part for modding.
@@ -64,12 +65,11 @@ func NewPubSubTask(ctx context.Context, processStart time.Time, wg *sync.WaitGro
 		if mod > 0 {
 			return
 		}
-		fmt.Println("Run job for", jobStart)
+		fmt.Println(jobStart.Format("15:04:05"), "Job Start")
 		// do the long time things
-		t := time.Tick(30 * time.Second)
+		t := time.Tick(10 * time.Second)
 		<-t
 		fmt.Println(jobStart.Format("15:04:05"), "Job Done", time.Now().Sub(jobStart))
-		wg.Done()
 	}, ctx, wg)
 }
 
@@ -80,6 +80,6 @@ func listenTermSignalAndStopDispatcher(cf context.CancelFunc, wg *sync.WaitGroup
 	signal := <-termSignal
 
 	fmt.Printf("Received system signal: %s\n", signal.String())
-	wg.Done()
 	cf()
+	wg.Done()
 }
